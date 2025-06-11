@@ -2,3 +2,4 @@ scripts
 .vscode
 metrics.py
 check_data.py
+**/__pycache__/
