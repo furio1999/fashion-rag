@@ -15,7 +15,11 @@
 
 <div align="center">
 
-> **Fashion-RAG: Multimodal Fashion Image Editing via Retrieval-Augmented Generation**  
+> **Fashion-RAG: Multimodal Fashion Image Editing via Retrieval-Augmented Generation** 
+> <p align="center">
+  <strong>International Joint Conference on Neural Networks (IJCNN) 2025<br>Oral Presentation</strong>
+</p>
+
 > [Fulvio Sanguigni](https://scholar.google.com/citations?user=tSpzMUEAAAAJ&hl=en)<sup>1,2,\*</sup>, [Davide Morelli](https://scholar.google.com/citations?hl=en&user=UJ4D3rYAAAAJ&view_op=list_works)<sup>1,2,\*</sup>, [Marcella Cornia](https://scholar.google.com/citations?user=DzgmSJEAAAAJ&hl=en)<sup>1</sup>, [Rita Cucchiara](https://scholar.google.com/citations?user=OM3sZEoAAAAJ&hl=en)<sup>1</sup>   
 > <sup>1</sup>University of Modena, <sup>2</sup>University of Pisa
 </div>
@@ -29,6 +33,9 @@
   </a>
   <a href='https://fashion-rag-page.github.io/' style="margin: 0 2px;">
     <img src='https://img.shields.io/badge/Webpage-Project-silver?style=flat&logo=&logoColor=orange' alt='webpage'>
+  </a>
+  <a href="https://huggingface.co/furio19/fashion-rag">
+    <img src="https://img.shields.io/badge/HuggingFace-Model-FFB000.svg" alt="Project">
   </a>
   <a href="https://raw.githubusercontent.com/furio1999/fashion-rag/refs/heads/main/LICENSE?token=GHSAT0AAAAAACZM6UVFACIVYIJVXCSFT2VA2CJR5HQ" style="margin: 0 2px;">
     <img src='https://img.shields.io/badge/License-CC BY--NC 4.0-lightgreen?style=flat&logo=Lisence' alt='License'>
@@ -115,24 +122,24 @@ Let's generate our virtual dressing images using the finetuned TEMU-VTOFF model.
 source fashion-rag/bin/activate
 
 python evaluate_RAG.py \
-                python evaluate_RAG.py \
-                --pretrained_model_name_or_path stabilityai/stable-diffusion-2-inpainting \
-                --output_dir "output directory path" \
-                --finetuned_models_dir "U-Net and inversion adapter directory weights path" \
-                --unet_name unet_120000.pth --inversion_adapter_name inversion_adapter_120000.pth \
-                --dataset dresscode --dresscode_dataroot <data path>/DressCode \
-                --category "garment category"\
-                --test_order "specify paired or unpaired" --mask_type mask \
-                --phase test --num_inference_steps 50 \
-                --test_batch_size 8 --num_workers_test 8 --metrics_batch_size 8 --mixed_precision fp16 \
-                --text_usage prompt_noun_chunks \
-                --retrieve_path <data path>/DressCode/fashion-rag-retrieval \
-                --clip_retrieve_model ViT-L-14 --clip_retrieve_weights laion2b_s32b_b82k \
-                --n_chunks "number of text chunks 1 to 3" \
-                --n_retrieved "number of retrieved images 1 to 3" \
-                --metrics fid_score kid_score retrieved_score clip_score lpips_score ssim_score \
-                --attention_layers_fine_list '-1' '0 1 2 3'\
-                --compute_metrics
+    python evaluate_RAG.py \
+    --pretrained_model_name_or_path stabilityai/stable-diffusion-2-inpainting \
+    --output_dir "output directory path" \
+    --finetuned_models_dir "U-Net and inversion adapter directory weights path" \
+    --unet_name unet_120000.pth --inversion_adapter_name inversion_adapter_120000.pth \
+    --dataset dresscode --dresscode_dataroot <data path>/DressCode \
+    --category "garment category"\
+    --test_order "specify paired or unpaired" --mask_type mask \
+    --phase test --num_inference_steps 50 \
+    --test_batch_size 8 --num_workers_test 8 --metrics_batch_size 8 --mixed_precision fp16 \
+    --text_usage prompt_noun_chunks \
+    --retrieve_path <data path>/DressCode/fashion-rag-retrieval \
+    --clip_retrieve_model ViT-L-14 --clip_retrieve_weights laion2b_s32b_b82k \
+    --n_chunks "number of text chunks 1 to 3" \
+    --n_retrieved "number of retrieved images 1 to 3" \
+    --metrics fid_score kid_score retrieved_score clip_score lpips_score ssim_score \
+    --attention_layers_fine_list '-1' '0 1 2 3'\
+    --compute_metrics
 ```
 ```plaintext
 out_dir/pte_paired_nc_<number_of_chunks>_nr_<number_of_retrieved_images>/
