@@ -117,7 +117,7 @@ def parse_args():
                         )
 
     parser.add_argument(
-        "--inversion_adapter_dir",
+        "--finetuned_models_dir",
         type=str,
         default=None,
         help="The output directory where the model predictions and checkpoints will be written.",
@@ -131,9 +131,9 @@ def parse_args():
     parser.add_argument("--no_pose", action="store_true")
     parser.add_argument("--category", type=str, choices=['all', 'lower_body', 'upper_body', 'dresses'], default='all')
     parser.add_argument("--conditioning_mode", choices=['none', 'txt', 'pte', 'pte_text', 'cross-attention'], 
-                        type=str, required=True, default='pte_embeddings')
+                        type=str, required=False, default='pte')
     parser.add_argument("--merge_modality", choices=['none', 'merge_pte', 'concat_pte'], 
-                        type=str, required=True, default='merge_pte')
+                        type=str, required=False, default='merge_pte')
     parser.add_argument("--text_usage", required=True, choices=['none', 'noun_chunks', 'prompt_noun_chunks'], type=str)
     parser.add_argument("--num_vstar", default=16, type=int)
     parser.add_argument("--num_encoder_layers", default=1, type=int)
@@ -273,20 +273,20 @@ def main():
         vae.requires_grad_(False)
         text_encoder.requires_grad_(False)
 
-        if args.output_dir is not None and args.unet_name != "baseline":  # Load unet checkpoint
+        if args.finetuned_models_dir is not None and args.unet_name != "baseline":  # Load unet checkpoint
             try:
                 if args.unet_name != "latest":
                     path = args.unet_name
                 else:
                     # Get the most recent checkpoint
-                    dirs = os.listdir(args.output_dir)
+                    dirs = os.listdir(args.finetuned_models_dir)
                     dirs = [d for d in dirs if d.startswith("unet")]
                     dirs = sorted(dirs, key=lambda x: int(os.path.splitext(x.split("_")[-1])[0]))
                     path = dirs[-1]
                 accelerator.print(f"Resuming unet from checkpoint {path}")
-                unet.load_state_dict(torch.load(os.path.join(args.output_dir, path)))
+                unet.load_state_dict(torch.load(os.path.join(args.finetuned_models_dir, path)))
             except:
-                print(f"no checkpoints found in {args.output_dir}")
+                print(f"no checkpoints found in {args.finetuned_models_dir}")
         else:
             print("No unet checkpoint specified\n" * 20, flush=True)
 
@@ -330,19 +330,19 @@ def main():
                                                 num_encoder_layers=args.num_encoder_layers,
                                                 config=vision_encoder.config)
 
-            if args.inversion_adapter_dir is not None:  # Load inversion adapter checkpoint
+            if args.finetuned_models_dir is not None:  # Load inversion adapter checkpoint
                 if args.inversion_adapter_name != "latest":
                     path = args.inversion_adapter_name
                 else:
                     # Get the most recent checkpoint
-                    dirs = os.listdir(args.inversion_adapter_dir)
+                    dirs = os.listdir(args.finetuned_models_dir)
                     dirs = [d for d in dirs if d.startswith("inversion_adapter")]
                     dirs = sorted(dirs, key=lambda x: int(
                         os.path.splitext(x.split("_")[-1])[0]))
                     path = dirs[-1]
                 accelerator.print(f"Resuming from checkpoint {path}")
                 inversion_adapter.load_state_dict(torch.load(
-                    os.path.join(args.inversion_adapter_dir, path)))
+                    os.path.join(args.finetuned_models_dir, path)))
             else:
                 print("No inversion adapter checkpoint directory specified. Using random initialized module")
         else:
