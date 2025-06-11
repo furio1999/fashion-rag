@@ -12,7 +12,6 @@ from accelerate.logging import get_logger
 from diffusers import DDIMScheduler
 from models.unet import UNet2DConditionModel
 from models.AutoencoderKL import AutoencoderKL
-from diffusers.models import AutoencoderKL
 from diffusers.utils import check_min_version
 from diffusers.utils.import_utils import is_xformers_available
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPVisionModelWithProjection, AutoProcessor
@@ -21,7 +20,6 @@ import open_clip
 
 from dataset.dresscode import DressCodeRetrieval, retrieve_collate_fn
 from functools import partial
-from dataset.vitonhd import VitonHDDataset
 from models.inversion_adapter import InversionAdapter
 
 from pipes.rag_pipe import FashionRAG_Pipe
@@ -128,7 +126,6 @@ def parse_args():
 
     parser.add_argument("--test_order", type=str, required=True, choices=["unpaired", "paired"])
     parser.add_argument("--mask_type", type=str, required=True, choices=["mask", "bounding_box"])
-    parser.add_argument("--save_name", type=str, required=True)
     parser.add_argument("--skip_image_extraction", action="store_true")
     parser.add_argument("--dataset", type=str, required=True, choices=["dresscode", "vitonhd"], help="dataset to use")
     parser.add_argument("--no_pose", action="store_true")
@@ -359,14 +356,7 @@ def main():
         else:
             category = ['dresses', 'upper_body', 'lower_body']
 
-        chunk_combos = ["single", "double", "triplet"]
-
         if args.dataset == "dresscode":
-            pred_files_paths = []
-            if not args.use_gt_retrieval and args.n_retrieved>0:
-                for cat in category:
-                    pred_files_paths.append(os.path.join(retrieve_feat_path, "metrics", f"{args.phase}_{cat}_{chunk_combos[args.n_chunks-1]}.json"))
-                
             test_dataset = DressCodeRetrieval(
                 dataroot_path=args.dresscode_dataroot,
                 phase=args.phase,
@@ -376,24 +366,11 @@ def main():
                 sketch_threshold_range=(20, 20),
                 category=category,
                 size=(512, 384),
-                pred_files_paths=pred_files_paths,
+                retrieve_feat_path=retrieve_feat_path,
                 n_chunks=args.n_chunks,
                 top_k=args.n_retrieved,
-                chunk_ids = args.chunk_list,
                 augment_dataset = args.augment_dataset
                 )
-        elif args.dataset == "vitonhd":
-            test_dataset = VitonHDDataset(
-                dataroot_path=args.vitonhd_dataroot,
-                phase=args.phase,
-                order=args.test_order,
-                radius=5,
-                outputlist=outputlist,
-                sketch_threshold_range=(20, 20),
-                size=(512, 384),
-                mask_type=args.mask_type,
-                texture_order=args.texture_order,
-            )
         else:
             raise NotImplementedError(f"Dataset {args.dataset} not implemented")
 
@@ -465,6 +442,7 @@ def main():
                                             attention_layers_fine_dict=attention_layers_fine_dict,
                                             concat_textual_cond=concat_textual_cond,
                                             use_retrieved = args.n_retrieved > 0,
+                                            use_chunks = True
                                             )
 
             val_pipe = None
@@ -488,7 +466,8 @@ def main():
             save_path,
             args.test_order, args.dataset, args.category,
             args.metrics, args.dresscode_dataroot,
-            args.vitonhd_dataroot, batch_size=args.metrics_batch_size, n_chunks=args.n_chunks, n_retrieved=args.n_retrieved, use_chunks=use_chunks, aug_captions=args.augment_dataset)
+            args.vitonhd_dataroot, batch_size=args.metrics_batch_size, n_chunks=args.n_chunks, n_retrieved=args.n_retrieved, use_chunks=use_chunks, 
+            retrieve_path=retrieve_feat_path, aug_captions=args.augment_dataset)
         
         metrics = {f"chunks_{args.n_chunks}_retrieved_{args.n_retrieved}": metrics}
         try:

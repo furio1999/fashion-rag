@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, Literal
 from tqdm import tqdm
 
 import torch
-from transformers import CLIPVisionModelWithProjection, CLIPProcessor
+from transformers import CLIPVisionModelWithProjection, CLIPImageProcessor, CLIPProcessor
 from pipes.rag_pipe import FashionRAG_Pipe
 from models.inversion_adapter import InversionAdapter
 from utils.encode_text_word_embedding import encode_text_word_embedding
@@ -33,11 +33,12 @@ def generate_images_from_pipe(pipe: FashionRAG_Pipe,
                                     use_retrieved : bool = False,
                                     attn_processor=None,
                                     n_retrieved=1, merge_pte=True, use_embeds=True,
+                                    use_chunks=False
                                     ) -> None:
     """_summary_
 
     Args:
-        pipe (MGDV2_Pipe): validation pipeline
+        pipe (FashionRAG_Pipe): validation pipeline
         inversion_adapter (InversionAdapter): Inversion adapter neetwork
         test_dataloader (torch.utils.data.DataLoader): torch.dataloader for validation dataset
         output_dir (str): output directory,  and output images will be saved here
@@ -114,7 +115,7 @@ def generate_images_from_pipe(pipe: FashionRAG_Pipe,
         if use_retrieved:
 
             input_image = (retrieved_images + 1) / 2  # Scale to [0, 1]
-            processed_images = processor(images=input_image, return_tensors="pt") # 3x224x224
+            processed_images = processor(images=list(input_image), return_tensors="pt") # 3x224x224
             clip_cloth_features = vision_encoder(processed_images.pixel_values.to(
                 model_img.device).to(vision_encoder.dtype)).last_hidden_state # 1024
 
@@ -207,7 +208,7 @@ def generate_images_from_pipe(pipe: FashionRAG_Pipe,
 
         # Handle text if is not None
         # Save images
-        use_chunks = True # save_cond_name = "chunks"
+        use_chunks = use_chunks # save_cond_name = "chunks"
         for i, (caption, gen_image, cat, im_name, c_name, rpaths) in enumerate(zip(batch["captions"], generated_images, category, batch["im_name"], batch['c_name'], retrieved_paths)):
             
             if not os.path.exists(os.path.join(save_path, cat)):

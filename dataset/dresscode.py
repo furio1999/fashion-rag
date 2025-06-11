@@ -127,16 +127,12 @@ class DressCodeDataset(data.Dataset):
         self.texture_mapping = texture_mapping
         self.category_names = category_names # NEW
         # if not file with caption dict
-        self.cloth_complete_names = {c_name: os.path.relpath(os.path.join(dataroot_names[idx], "cleaned_inshop_imgs", \
-            c_name.replace(".jpg", "_cleaned.jpg")), self.dataroot) for idx, c_name in enumerate(c_names)}
-        if not os.path.isfile(os.path.join(dataroot, "complete_dict.json")):
-            self.complete_dict = {self.cloth_complete_names[c_name]: list(dict.fromkeys(self.captions_dict[c_name.split('_')[0]])) \
-                for c_name in sorted(c_names)}
-            with open(os.path.join(dataroot, f"complete_dict_{phase}.json"), "w") as f:
-                json.dump(self.complete_dict, f, indent=2)
-        else:
-            with open(os.path.join(dataroot, f"complete_dict_{phase}.json")) as f:
-                self.complete_dict = json.load(f)
+        # self.cloth_complete_names = OrderedDict()  # {c_name: cloth_path} for each c_name in c_names
+        # for idx, c_name in enumerate(c_names):
+        #     cloth_path = os.path.join(
+        #         dataroot, 'cleaned_inshop_imgs', c_name.replace(".jpg", "_cleaned.jpg"))
+        #     if not os.path.exists(cloth_path): cloth_path = os.path.join(dataroot, 'images', c_name)
+        # self.cloth_complete_names[c_name] = os.path.relpath(cloth_path, self.dataroot)
 
     def __getitem__(self, index: int) -> dict:
         """For each index return the corresponding element in the dataset
@@ -162,6 +158,7 @@ class DressCodeDataset(data.Dataset):
         c_name = self.c_names[index]
         im_name = self.im_names[index]
         dataroot = self.dataroot_names[index]
+        category = dataroot.split('/')[-1]
 
         sketch_threshold = random.randint(
             self.sketch_threshold_range[0], self.sketch_threshold_range[1])
@@ -177,8 +174,10 @@ class DressCodeDataset(data.Dataset):
 
         if "cloth" in self.outputlist:
             # Clothing image
-            cloth = Image.open(os.path.join(
-                dataroot, 'cleaned_inshop_imgs', c_name.replace(".jpg", "_cleaned.jpg")))
+            cloth_path = os.path.join(
+                dataroot, 'cleaned_inshop_imgs', c_name.replace(".jpg", "_cleaned.jpg"))
+            if not os.path.exists(cloth_path): cloth_path = os.path.join(dataroot, 'images', c_name)
+            cloth = Image.open(cloth_path)
             cloth = cloth.resize((self.width, self.height))
             cloth = self.transform(cloth)  # [-1,1]
 
@@ -477,7 +476,6 @@ class DressCodeDataset(data.Dataset):
             stitch_labelmap = transforms.ToTensor()(stitch_labelmap) * 255
             stitch_label = stitch_labelmap == 13
 
-        cpath = self.cloth_complete_names[c_name]
         result = {}
         for k in self.outputlist:
             result[k] = vars()[k]
@@ -534,8 +532,8 @@ class InShopDataset(data.Dataset):
                 'c_name': self.cloth_names[index][:-4]}
   
 class DressCodeRetrieval(DressCodeDataset):
-    def __init__(self, *args, pred_files_paths= [], n_chunks=1, 
-                 chunks_list = ["single", "double", "triplet"], 
+    def __init__(self, *args, retrieve_feat_path:str = None, n_chunks=3, 
+                 chunk_combos = ["single", "double", "triplet"], 
                  retrievelist: Tuple[str] = ('retrieved_cloth', 'retrieved_cpaths'), top_k=5, 
                  shuffle=[], augment_dataset=False, chunk_ids: list = None, **kwargs):
         """_summary_
@@ -551,16 +549,20 @@ class DressCodeRetrieval(DressCodeDataset):
         super().__init__(*args, **kwargs)
 
         self.pred_files = {}
-        self.chunk_ids = chunk_ids
+        self.chunk_ids = chunk_combos
         if shuffle != []:
             assert self.phase == "train", print(f"{self.phase} phase and shuffle activated!! You can use shuffle only with train")
 
         # load precomputed retrieved files
+        pred_files_paths = []
+        if top_k > 0 and retrieve_feat_path is not None:
+            for cat in self.category:
+                pred_files_paths.append(os.path.join(retrieve_feat_path, f"{self.phase}_{cat}_{chunk_combos[n_chunks-1]}.json"))
         for pred_files_path in pred_files_paths:
             with open(os.path.join(pred_files_path)) as f:
-                metrics = json.load(f)
-                self.pred_files.update(metrics["pred_files"]) # self.retrieved_files
-        del metrics
+                retrieved_and_metrics = json.load(f)
+                self.pred_files.update(retrieved_and_metrics["pred_files"]) # self.retrieved_files
+            del retrieved_and_metrics
 
         if top_k > 0: 
             self.pred_files = {key:value[:top_k] for key,value in self.pred_files.items()}
@@ -588,7 +590,7 @@ class DressCodeRetrieval(DressCodeDataset):
             else: assert len(self.chunk_ids) == n_chunks
             captions = []
             for c_name in self.c_names:
-                chunks = ", ".join([sorted(self.captions_dict[c_name.split("_")[0]])[i] for i in self.chunk_ids])
+                chunks = ", ".join([sorted(self.captions_dict[c_name.split("_")[0]])[i] for i in range(n_chunks)])
                 captions.append(chunks)
             c_names, im_names, dataroot_names = self.c_names, self.im_names, self.dataroot_names
 
@@ -623,13 +625,15 @@ class DressCodeRetrieval(DressCodeDataset):
             if self.pred_files != {}:
                 pred_files = self.pred_files[caption]
             else:
-                pred_files = [self.cloth_complete_names[vocab["c_name"]] for n in range(self.n_retrieved)]
+                pred_files = []
 
             if "retrieved" in self.shuffle:
                 pred_files = pred_files[:random.randint(1,self.n_retrieved)]
 
             for file in pred_files:
                 filepath = os.path.join(self.dataroot, file)
+                if not os.path.exists(filepath): 
+                    filepath = filepath.replace("cleaned_inshop_imgs", "images").replace("_cleaned.jpg", ".jpg")
                 
                 img = Image.open(filepath)
                 img = img.resize((self.width, self.height))

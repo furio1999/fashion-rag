@@ -102,7 +102,8 @@ def sketch_metric(gt_sketch_batch: torch.tensor, gen_batch: torch.tensor, genera
 @torch.inference_mode()
 def compute_metrics(gen_folder, setting, dataset, category: str, metrics2compute: List[str], dresscode_dataroot,
                     vitonhd_dataroot, generated_size=(512, 384), batch_size=32, workers=8, 
-                    texture_order='original', use_chunks=False, n_chunks=1, n_retrieved=1, aug_captions=False, pred_files_paths=[]):
+                    texture_order='original', use_chunks=False, n_chunks=1, n_retrieved=1, aug_captions=False,
+                    retrieve_path = None):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     assert setting in ['paired', 'unpaired']
@@ -133,27 +134,35 @@ def compute_metrics(gen_folder, setting, dataset, category: str, metrics2compute
     print("Loading custom stats and computing Fid/Kid scores")
     if category == 'all':
         if "fid_score" in metrics2compute or "all" in metrics2compute:
+            print("Computing FID Score for all categories")
             if not fid.test_stats_exists(f"{dataset}_all", mode='clean'):
                 make_custom_stats(dresscode_dataroot, vitonhd_dataroot)
             fid_score = fid.compute_fid(gen_folder, dataset_name=f"{dataset}_all", mode='clean', dataset_split="custom",
                                         verbose=True, use_dataparallel=False)
+            print(f"FID score for {dataset}_all: {fid_score}")
         if "kid_score" in metrics2compute or "all" in metrics2compute:
+            print("Computing KID Score for all categories")
             if not fid.test_stats_exists(f"{dataset}_all", mode='clean'):
                 make_custom_stats(dresscode_dataroot, vitonhd_dataroot)
             kid_score = fid.compute_kid(gen_folder, dataset_name=f"{dataset}_all", mode='clean', dataset_split="custom",
                                         verbose=True, use_dataparallel=False)
+            print(f"KID score for {dataset}_all: {kid_score}")
     else:
         if "fid_score" in metrics2compute or "all" in metrics2compute:
+            print("Computing FID Score for category:", category)
             if not fid.test_stats_exists(f"{dataset}_{category}", mode='clean'):
                 make_custom_stats(dresscode_dataroot, vitonhd_dataroot)
             fid_score = fid.compute_fid(os.path.join(gen_folder, category), dataset_name=f"{dataset}_{category}",
                                         mode='clean', verbose=True, dataset_split="custom", use_dataparallel=False)
+            print(f"FID score for {dataset}_{category}: {fid_score}")
         if "kid_score" in metrics2compute or "all" in metrics2compute:
+            print("Computing KID Score for category:", category)
             if not fid.test_stats_exists(f"{dataset}_{category}", mode='clean'):
                 make_custom_stats(dresscode_dataroot, vitonhd_dataroot)
             kid_score = fid.compute_kid(os.path.join(gen_folder, category),
                                         dataset_name=f"{dataset}_{category}", mode='clean', verbose=True,
                                         dataset_split="custom", use_dataparallel=False)
+            print(f"KID score for {dataset}_{category}: {kid_score}")
 
     if "pose_score" in metrics2compute or "all" in metrics2compute:
         from utils.pose_metric import compute_metrics_category_wise
@@ -183,12 +192,12 @@ def compute_metrics(gen_folder, setting, dataset, category: str, metrics2compute
     elif dataset == 'dresscode':
         if category == 'all':
             gt_dataset = DressCodeRetrieval(dresscode_dataroot, phase='test', order=setting, outputlist=outputlist, retrievelist=retrievelist,
-                                          size=generated_size, texture_order=texture_order, n_chunks=n_chunks, top_k=n_retrieved, pred_files_paths=pred_files_paths,
+                                          size=generated_size, texture_order=texture_order, n_chunks=n_chunks, top_k=n_retrieved, retrieve_feat_path=retrieve_path,
                                           augment_dataset=aug_captions)
         else:
             gt_dataset = DressCodeRetrieval(dresscode_dataroot, phase='test', order=setting, outputlist=outputlist, retrievelist=retrievelist,
                                           size=generated_size, category=[category], texture_order=texture_order,
-                                          n_chunks=n_chunks, top_k=n_retrieved, pred_files_paths=pred_files_paths,
+                                          n_chunks=n_chunks, top_k=n_retrieved, retrieve_feat_path=retrieve_path,
                                           augment_dataset=aug_captions)
     else:
         raise ValueError('Unsupported dataset')
@@ -242,7 +251,6 @@ def compute_metrics(gen_folder, setting, dataset, category: str, metrics2compute
         from torchmetrics.multimodal import CLIPScore
         model_clipscore = CLIPScore(model_name_or_path="laion/CLIP-ViT-H-14-laion2B-s32B-b79K").to(device) # "openai/clip-vit-base-patch16" "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
 
-    
     for idx, (gen_batch, gt_batch) in tqdm(enumerate(zip(gen_loader, gt_loader)), total=len(gt_loader)):
         # if idx*batch_size > 100 and debug: break
         gen_images, gen_names = gen_batch
@@ -358,13 +366,13 @@ def compute_metrics(gen_folder, setting, dataset, category: str, metrics2compute
                     cropped_imgs.append(torchvision.transforms.CenterCrop(64)(cropped_img))
 
             bs = len(cropped_imgs) # needed for multiple images reshaping
-            concat_cropped_imgs = torch.stack(cropped_imgs)
+            # concat_cropped_imgs = torch.stack(cropped_imgs)
 
-            processed_images = model_clipscore.processor(images=concat_cropped_imgs, return_tensors="pt")
+            processed_images = model_clipscore.processor(images=list(cropped_imgs), return_tensors="pt")
             cloth_features = model_clipscore.model.get_image_features(processed_images["pixel_values"].to(device))
             cloth_features = F.normalize(cloth_features)
 
-            processed_cloth = model_clipscore.processor(images=retrieved_cloths, return_tensors="pt")
+            processed_cloth = model_clipscore.processor(images=list(retrieved_cloths), return_tensors="pt")
             retrieved_cloth_features = model_clipscore.model.get_image_features(processed_cloth["pixel_values"].to(device))
             ensemble_feats = F.normalize(retrieved_cloth_features).view(bs,-1, *retrieved_cloth_features.shape[1:])
             avg_scores = [torch.cosine_similarity(cloth_features, ensemble_feats[:,i, ...]).sum().item() for i in range(ensemble_feats.shape[1])]
