@@ -15,7 +15,6 @@
 
 <div align="center">
 
-> **Fashion-RAG: Multimodal Fashion Image Editing via Retrieval-Augmented Generation** 
 > <p align="center">
   <strong>International Joint Conference on Neural Networks (IJCNN) 2025<br>Oral Presentation</strong>
 </p>
@@ -107,7 +106,7 @@ Clone the repository:
 
 ## Data and Models
 Download DressCode from the [original repository](https://github.com/aimagelab/dress-code)
-Download the finetuned U-Net and Inversion Adapter from [this source](https://huggingface.co/furio19/fashion-rag) and put them into your experiment folder as follows:
+Download the finetuned U-Net and Inversion Adapter from [this source](https://huggingface.co/furio19/fashion-rag/tree/main) and put them into your experiment folder as follows:
 ```plaintext
 <experiment folder>/
 │
