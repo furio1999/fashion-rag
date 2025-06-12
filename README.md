@@ -141,6 +141,7 @@ python evaluate_RAG.py \
     --attention_layers_fine_list '-1' '0 1 2 3'\
     --compute_metrics
 ```
+The final output folder structure will look like this:
 ```plaintext
 out_dir/pte_paired_nc_<number_of_chunks>_nr_<number_of_retrieved_images>/
 │
