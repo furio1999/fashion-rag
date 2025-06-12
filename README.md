@@ -7,8 +7,8 @@
 
 <div align="center">
   <picture>
-    <source srcset="assets/retrieve_demo.png" media="(prefers-color-scheme: dark)">
-      <img src="assets/retrieve_demo.png" width="75%" alt="MiniMax">
+    <source srcset="assets/model.png" media="(prefers-color-scheme: dark)">
+      <img src="assets/model.png" width="50%" alt="MiniMax">
     </source>
   </picture>
 </div>
