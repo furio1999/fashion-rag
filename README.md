@@ -7,8 +7,8 @@
 
 <div align="center">
   <picture>
-    <source srcset="assets/teaser.png" media="(prefers-color-scheme: dark)">
-      <img src="assets/teaser.png" width="75%" alt="MiniMax">
+    <source srcset="assets/retrieve_demo.pdf" media="(prefers-color-scheme: dark)">
+      <img src="assets/retrieve_demo.pdf" width="75%" alt="MiniMax">
     </source>
   </picture>
 </div>
@@ -72,6 +72,8 @@ Our contribution can be summarized as follows:
 Instead, our method succesfully leverages textual information and retrieves coherent garments to perform the task
 - **👗👚🧥 Multiple Garments Conditioning**. We introduce a plug-and-play adapter module that is flexible to the number of retrieved items, allowing to retrieve up to 3 garments per text prompt.
 - **📊 Extensive experiments**. Experiments on the Dress Code datasets demonstrate that Fahion-RAG outweights previous competitors.
+
+<!-- Maybe put method here and teaser up, or just method as teaser -->
 
 <!-- GETTING STARTED -->
 ## Getting Started
