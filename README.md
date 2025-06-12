@@ -52,6 +52,7 @@
       <li><a href="#installation">Installation</a></li>
     </ul>
   </li>
+  <li><a href="#data-and-models">Data and Models</a></li>
   <li><a href="#inference">Inference</a></li>
 </ol>
 </details>
