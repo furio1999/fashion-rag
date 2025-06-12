@@ -113,6 +113,7 @@ Download the finetuned U-Net and Inversion Adapter from [this source](https://hu
 ├── unet_120000.pth
 ├── inversion_adapter_120000.pth
 ```
+Copy the provided retrieval file paths folder dataset/dresscode-retrieval into your retrieve path or use them directly.
 
 
 ## Inference
@@ -132,9 +133,9 @@ python evaluate_RAG.py \
     --phase test --num_inference_steps 50 \
     --test_batch_size 8 --num_workers_test 8 --metrics_batch_size 8 --mixed_precision fp16 \
     --text_usage prompt_noun_chunks \
-    --retrieve_path <data path>/DressCode/fashion-rag-retrieval \
+    --retrieve_path "dataset/dresscode-retrieval or your custom path" \
     --clip_retrieve_model ViT-L-14 --clip_retrieve_weights laion2b_s32b_b82k \
-    --n_chunks "number of text chunks 1 to 3" \
+    --n_chunks "number of text chunks 1 or 3" \
     --n_retrieved "number of retrieved images 1 to 3" \
     --metrics fid_score kid_score retrieved_score clip_score lpips_score ssim_score \
     --attention_layers_fine_list '-1' '0 1 2 3'\
