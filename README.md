@@ -120,7 +120,7 @@ Copy the provided retrieval file paths folder dataset/dresscode-retrieval into y
 
 
 ## Inference
-Let's generate our virtual dressing images using the finetuned TEMU-VTOFF model.
+Let's generate our virtual dressing images using the finetuned Fashion-RAG model.
 ```sh
 source fashion-rag/bin/activate
 
